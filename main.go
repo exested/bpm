@@ -19,7 +19,7 @@ const pattern = "Go"
 const maxGoroutines = 5
 
 
-func patternCounterForUrl(url string, commonChan chan struct{}, resChan chan urlDataType, wg *sync.WaitGroup) {
+func patternCounterForUrl(url string, commonChan <-chan struct{}, resChan chan<- urlDataType, wg *sync.WaitGroup) {
 	urlData := urlDataType{
 		url: url,
 		patternCount: 0,
