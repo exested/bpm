@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 type urlDataType struct {
@@ -18,11 +19,14 @@ const pattern = "Go"
 const maxGoroutines = 5
 
 
-func patternCounterForUrl(url string, commonChan chan struct{}, resChan chan urlDataType) {
+func patternCounterForUrl(url string, commonChan chan struct{}, resChan chan urlDataType, wg *sync.WaitGroup) {
 	urlData := urlDataType{
 		url: url,
 		patternCount: 0,
 	}
+	defer func() {
+		wg.Done()
+	}()
 
 	res, err := http.Get(url)
 	if err != nil {
@@ -42,6 +46,7 @@ func patternCounterForUrl(url string, commonChan chan struct{}, resChan chan url
 
 
 func main() {
+	var wg sync.WaitGroup
 	commonChan := make(chan struct{}, maxGoroutines)
 	resChan := make(chan urlDataType)
 
@@ -51,8 +56,9 @@ func main() {
 		if url == "" {
 			continue
 		}
+		wg.Add(1)
 		commonChan <- struct{}{}
-		go patternCounterForUrl(url, commonChan, resChan)
+		go patternCounterForUrl(url, commonChan, resChan, &wg)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -60,17 +66,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	go func() {
+		wg.Wait()
+		close(resChan)
+	}()
+
 	totalCount := 0
 	for res := range resChan {
 		totalCount += res.patternCount
-
 		fmt.Printf("Count for %s: %d\n", res.url, res.patternCount)
-
-		if len(commonChan) == 0 {
-			fmt.Println("Total count:", totalCount)
-			break
-		}
 	}
 
 	fmt.Println("The End")
+	close(commonChan)
 }
