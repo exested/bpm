@@ -16,6 +16,13 @@ type urlData struct {
 	error string
 }
 
+func (this urlData) print() {
+	if this.error == "" {
+		fmt.Printf("Count for %s: %d\n", this.url, this.patternCount)
+	} else {
+		fmt.Printf("%s: %s\n", this.url, this.error)
+	}
+}
 
 func getUrl(url string, pattern string) urlData {
 	data := urlData{
@@ -40,13 +47,9 @@ func getUrl(url string, pattern string) urlData {
 
 func printResult(results <-chan urlData) {
 	var totalCount int
-	for res := range results {
-		if res.error == "" {
-			fmt.Printf("Count for %s: %d\n", res.url, res.patternCount)
-			totalCount += res.patternCount
-		} else {
-			fmt.Printf("%s: %s\n", res.url, res.error)
-		}
+	for r := range results {
+		r.print()
+		totalCount += r.patternCount
 	}
 	fmt.Printf("Total count: %d\n", totalCount)
 }
